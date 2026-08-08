@@ -18,13 +18,11 @@ for url in urls where !FileManager.default.fileExists(atPath: url.path) {
     fail("no such file: \(url.path)", code: 66)
 }
 
-// Launch Services knows the app once it has been registered; the fallbacks
-// cover fresh installs (Homebrew keeps the app in <prefix>/libexec next to
-// this binary) before any registration has happened.
+// Prefer the app this CLI was installed with (Homebrew keeps it in
+// <prefix>/libexec next to this binary), then the standard locations, and
+// only then whatever Launch Services associates with the bundle id — LS can
+// pick up stray registered copies (e.g. build artifacts that were opened).
 func locateApp() -> URL? {
-    if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
-        return url
-    }
     var candidates: [URL] = []
     if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
         candidates.append(
@@ -34,7 +32,10 @@ func locateApp() -> URL? {
     }
     candidates.append(URL(fileURLWithPath: "/Applications/VMD.app"))
     candidates.append(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications/VMD.app"))
-    return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+    if let found = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+        return found
+    }
+    return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
 }
 
 guard let appURL = locateApp() else {
