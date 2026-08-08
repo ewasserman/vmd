@@ -55,7 +55,8 @@
 
 - [ ] Table of contents sidebar
 - [ ] Export rendered HTML
-- [ ] Homebrew formula / notarized release builds
+- [x] Homebrew tap (ewasserman/tap/vmd) — builds from source, so no
+      quarantine and no Apple notarization needed
 
 ## Milestone 6 — CI ✅
 
