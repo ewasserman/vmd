@@ -55,4 +55,11 @@ make run            # build dist/VMD.app and launch it
 - `Sources/VMDApp` — SwiftUI document app; a custom `vmd:` URL scheme handler feeds `WKWebView`
 - `Sources/vmd` — CLI launcher
 
+## Releasing
+
+Releases are automated: pushes to `main` with [conventional commits](https://www.conventionalcommits.org)
+(`fix:`/`perf:` → patch, `feat:` → minor, `!`/`BREAKING CHANGE` → major) are
+tagged, released, and rolled into the Homebrew formula by CI. Other commit
+types (`docs:`, `ci:`, `chore:`, ...) release nothing.
+
 See [PLAN.md](PLAN.md) for the development plan.

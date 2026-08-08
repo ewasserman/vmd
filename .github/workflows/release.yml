@@ -1,0 +1,114 @@
+name: Release
+
+# Every push to main is examined for conventional commits since the last tag:
+#   fix:/perf: -> patch    feat: -> minor    type!: / BREAKING CHANGE -> major
+# When a bump is warranted this tags vX.Y.Z, creates the GitHub release, and
+# updates the Homebrew formula in ewasserman/homebrew-tap (via a write-scoped
+# deploy key stored as the TAP_DEPLOY_KEY secret). Pushes with only other
+# commit types (docs:, ci:, chore:, refactor:, ...) release nothing.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compute next version from conventional commits
+        id: bump
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -n "$last" ]; then range="$last..HEAD"; else range="HEAD"; fi
+          subjects=$(git log --format='%s' "$range")
+          bodies=$(git log --format='%b' "$range")
+          bump=""
+          if echo "$subjects" | grep -qE '^[a-zA-Z]+(\([^)]*\))?!:' || echo "$bodies" | grep -q 'BREAKING CHANGE'; then
+            bump=major
+          elif echo "$subjects" | grep -qE '^feat(\([^)]*\))?:'; then
+            bump=minor
+          elif echo "$subjects" | grep -qE '^(fix|perf)(\([^)]*\))?:'; then
+            bump=patch
+          fi
+          if [ -z "$bump" ]; then
+            echo "No releasable commits since ${last:-the beginning}; skipping release."
+            exit 0
+          fi
+          version=${last#v}
+          version=${version:-0.0.0}
+          IFS=. read -r major minor patch <<<"$version"
+          case $bump in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          echo "Releasing v$major.$minor.$patch ($bump bump from ${last:-nothing})"
+          echo "version=$major.$minor.$patch" >> "$GITHUB_OUTPUT"
+          echo "tag=v$major.$minor.$patch" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: version
+    if: needs.version.outputs.version != ''
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build
+      - run: swift test
+
+  release:
+    needs: [version, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag and create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          git tag "$TAG" "$GITHUB_SHA"
+          git push origin "$TAG"
+          gh release create "$TAG" --title "$TAG" --generate-notes
+
+  update-tap:
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute source tarball checksum
+        id: tarball
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          curl -fsSL "https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${TAG}.tar.gz" -o source.tar.gz
+          echo "sha256=$(sha256sum source.tar.gz | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - name: Update formula
+        env:
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+          TAG: ${{ needs.version.outputs.tag }}
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA256: ${{ steps.tarball.outputs.sha256 }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$TAP_DEPLOY_KEY" > ~/.ssh/tap_key
+          chmod 600 ~/.ssh/tap_key
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/tap_key -o StrictHostKeyChecking=accept-new"
+          git clone git@github.com:ewasserman/homebrew-tap.git tap
+          cd tap
+          sed -i -E "s|/tags/v[0-9.]+\.tar\.gz|/tags/${TAG}.tar.gz|" Formula/vmd.rb
+          sed -i -E "s|sha256 \"[0-9a-f]+\"|sha256 \"${SHA256}\"|" Formula/vmd.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "vmd ${VERSION}"
+          git push
