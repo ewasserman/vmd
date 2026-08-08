@@ -48,6 +48,9 @@
       restored afterwards — as KaTeX delimiters in prose, or verbatim inside
       code blocks.
 
+- [x] Source view toggle (⇧⌘U / toolbar): raw markdown rendered through the
+      same pipeline as a highlighted code block, so live reload and find still work
+
 ## Ideas / backlog
 
 - [ ] Table of contents sidebar

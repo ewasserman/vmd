@@ -13,7 +13,20 @@ public enum HTMLTemplate {
     public static let katexAutoRenderURL = "vmd://assets/katex/auto-render.min.js"
     public static let katexStylesheetURL = "vmd://assets/katex/katex.min.css"
 
+    /// A page showing raw markdown source as a highlighted code block.
+    public static func sourcePage(title: String, source: String) -> String {
+        page(
+            title: title,
+            body: "<pre><code class=\"language-markdown\">\(escape(source))</code></pre>",
+            articleClass: "markdown-body source-view"
+        )
+    }
+
     public static func page(title: String, body: String) -> String {
+        page(title: title, body: body, articleClass: "markdown-body")
+    }
+
+    private static func page(title: String, body: String, articleClass: String) -> String {
         let nonce = UUID().uuidString
         var head = ""
         var scripts = ""
@@ -48,7 +61,7 @@ public enum HTMLTemplate {
         <title>\(escape(title))</title>
         \(head)<style>\(css)</style>
         </head>
-        <body><article class="markdown-body">
+        <body><article class="\(articleClass)">
         \(body)
         </article>\(scripts)</body>
         </html>
@@ -206,6 +219,7 @@ public enum HTMLTemplate {
     tbody tr:nth-child(2n) { background: var(--code-bg); }
     img { max-width: 100%; height: auto; }
     hr { border: 0; height: 1px; background: var(--border); margin: 24px 0; }
+    .source-view { max-width: 1100px; }
     .footnotes {
       margin-top: 32px;
       font-size: 85%;

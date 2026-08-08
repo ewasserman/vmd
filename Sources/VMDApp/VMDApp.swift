@@ -23,6 +23,14 @@ struct VMDApp: App {
                     .keyboardShortcut("f")
                     .disabled(viewerModel == nil)
             }
+            CommandGroup(after: .toolbar) {
+                Toggle("Source View", isOn: Binding(
+                    get: { viewerModel?.showsSource ?? false },
+                    set: { viewerModel?.showsSource = $0 }
+                ))
+                .keyboardShortcut("u", modifiers: [.command, .shift])
+                .disabled(viewerModel == nil)
+            }
             CommandGroup(replacing: .printItem) {
                 Button("Print…") { viewerModel?.printDocument() }
                     .keyboardShortcut("p")

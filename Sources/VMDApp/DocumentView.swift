@@ -7,13 +7,22 @@ struct DocumentView: View {
     @FocusState private var findFieldFocused: Bool
 
     var body: some View {
-        MarkdownWebView(fileURL: fileURL, model: model)
+        MarkdownWebView(fileURL: fileURL, model: model, showsSource: model.showsSource)
             .overlay(alignment: .topTrailing) {
                 if model.isFindVisible { findBar }
             }
             .focusedSceneValue(\.viewerModel, model)
             .onChange(of: model.isFindVisible) { _, visible in
                 findFieldFocused = visible
+            }
+            .toolbar {
+                ToolbarItem {
+                    Toggle(isOn: $model.showsSource) {
+                        Label("Source", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .toggleStyle(.button)
+                    .help("Toggle source view (⇧⌘U)")
+                }
             }
     }
 

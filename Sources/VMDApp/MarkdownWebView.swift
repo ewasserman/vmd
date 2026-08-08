@@ -6,6 +6,7 @@ import VMDCore
 struct MarkdownWebView: NSViewRepresentable {
     let fileURL: URL
     var model: ViewerModel?
+    var showsSource = false
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -18,13 +19,13 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.underPageBackgroundColor = .textBackgroundColor
         context.coordinator.webView = webView
         model?.webView = webView
-        context.coordinator.show(fileURL)
+        context.coordinator.show(fileURL, source: showsSource)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.watchedURL != fileURL {
-            context.coordinator.show(fileURL)
+        if context.coordinator.watchedURL != fileURL || context.coordinator.showsSource != showsSource {
+            context.coordinator.show(fileURL, source: showsSource)
         }
     }
 
@@ -32,15 +33,17 @@ struct MarkdownWebView: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate {
         weak var webView: WKWebView?
         private(set) var watchedURL: URL?
+        private(set) var showsSource = false
         private var watcher: FileWatcher?
         private var pendingScrollY: Double?
 
-        func show(_ url: URL) {
+        func show(_ url: URL, source: Bool) {
             watchedURL = url
+            showsSource = source
             watcher = FileWatcher(url: url) { [weak self] in
                 self?.reloadPreservingScroll()
             }
-            webView?.load(URLRequest(url: MarkdownSchemeHandler.pageURL(for: url)))
+            webView?.load(URLRequest(url: MarkdownSchemeHandler.pageURL(for: url, source: source)))
         }
 
         private func reloadPreservingScroll() {
@@ -86,11 +89,14 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn", "txt", "text"]
 
-    static func pageURL(for fileURL: URL) -> URL {
+    static func pageURL(for fileURL: URL, source: Bool = false) -> URL {
         var components = URLComponents()
         components.scheme = scheme
         components.host = ""
         components.path = fileURL.standardizedFileURL.path
+        if source {
+            components.queryItems = [URLQueryItem(name: "view", value: "source")]
+        }
         return components.url!
     }
 
@@ -124,10 +130,12 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
         let fileURL = URL(fileURLWithPath: url.path)
         let data = try Data(contentsOf: fileURL)
         if Self.markdownExtensions.contains(fileURL.pathExtension.lowercased()) {
-            let html = HTMLTemplate.page(
-                title: fileURL.lastPathComponent,
-                body: MarkdownRenderer.html(from: String(decoding: data, as: UTF8.self))
-            )
+            let text = String(decoding: data, as: UTF8.self)
+            let wantsSource = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.contains { $0.name == "view" && $0.value == "source" } ?? false
+            let html = wantsSource
+                ? HTMLTemplate.sourcePage(title: fileURL.lastPathComponent, source: text)
+                : HTMLTemplate.page(title: fileURL.lastPathComponent, body: MarkdownRenderer.html(from: text))
             return (Data(html.utf8), "text/html", "utf-8")
         }
         let mimeType = UTType(filenameExtension: fileURL.pathExtension)?.preferredMIMEType

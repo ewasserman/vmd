@@ -7,6 +7,7 @@ import WebKit
 final class ViewerModel: ObservableObject {
     weak var webView: WKWebView?
     @Published var isFindVisible = false
+    @Published var showsSource = false
 
     func find(_ text: String, backwards: Bool = false) {
         guard let webView, !text.isEmpty else { return }

@@ -104,6 +104,13 @@ import Testing
         #expect(fence.contains(HTMLTemplate.katexScriptURL))
     }
 
+    @Test func sourcePageShowsEscapedMarkdownWithHighlighting() {
+        let page = HTMLTemplate.sourcePage(title: "t", source: "# Hi <b>\n\n$x$")
+        #expect(page.contains("class=\"language-markdown\""))
+        #expect(page.contains("# Hi &lt;b&gt;"))
+        #expect(page.contains(HTMLTemplate.highlightScriptURL))
+    }
+
     @Test func injectsHighlightingOnlyForCodeBlocks() {
         let plain = HTMLTemplate.page(title: "t", body: "<p>hi <code>x</code></p>")
         #expect(!plain.contains(HTMLTemplate.highlightScriptURL))
