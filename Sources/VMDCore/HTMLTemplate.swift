@@ -9,6 +9,9 @@ public enum HTMLTemplate {
     public static let mermaidScriptURL = "vmd://assets/mermaid.min.js"
     public static let highlightScriptURL = "vmd://assets/highlight.min.js"
     public static let highlightStylesheetURL = "vmd://assets/highlight.css"
+    public static let katexScriptURL = "vmd://assets/katex/katex.min.js"
+    public static let katexAutoRenderURL = "vmd://assets/katex/auto-render.min.js"
+    public static let katexStylesheetURL = "vmd://assets/katex/katex.min.css"
 
     public static func page(title: String, body: String) -> String {
         let nonce = UUID().uuidString
@@ -26,6 +29,14 @@ public enum HTMLTemplate {
             scripts += """
             <script nonce="\(nonce)" src="\(mermaidScriptURL)"></script>
             <script nonce="\(nonce)">\(mermaidInit)</script>
+            """
+        }
+        if body.contains("\\(") || body.contains("\\[") || body.contains("language-math") {
+            head += "<link rel=\"stylesheet\" href=\"\(katexStylesheetURL)\">\n"
+            scripts += """
+            <script nonce="\(nonce)" src="\(katexScriptURL)"></script>
+            <script nonce="\(nonce)" src="\(katexAutoRenderURL)"></script>
+            <script nonce="\(nonce)">\(katexInit)</script>
             """
         }
         return """
@@ -52,8 +63,24 @@ public enum HTMLTemplate {
 
     private static let highlightInit = """
     document.querySelectorAll('pre > code').forEach(function (el) {
-      if (el.classList.contains('language-mermaid')) return;
+      if (el.classList.contains('language-mermaid') || el.classList.contains('language-math')) return;
       hljs.highlightElement(el);
+    });
+    """
+
+    private static let katexInit = """
+    document.querySelectorAll('pre > code.language-math').forEach(function (code) {
+      var holder = document.createElement('div');
+      holder.className = 'math-display';
+      katex.render(code.textContent, holder, { displayMode: true, throwOnError: false });
+      code.parentElement.replaceWith(holder);
+    });
+    renderMathInElement(document.body, {
+      delimiters: [
+        { left: '\\\\[', right: '\\\\]', display: true },
+        { left: '\\\\(', right: '\\\\)', display: false }
+      ],
+      throwOnError: false
     });
     """
 

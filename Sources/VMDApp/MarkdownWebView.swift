@@ -118,15 +118,7 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private func response(for url: URL) throws -> (Data, String, String?) {
         if url.host == "assets" {
-            let assets: [String: (resource: String, ext: String, mime: String)] = [
-                "mermaid.min.js": ("mermaid.min", "js", "text/javascript"),
-                "highlight.min.js": ("highlight.min", "js", "text/javascript"),
-                "highlight.css": ("highlight", "css", "text/css"),
-            ]
-            guard let asset = assets[url.lastPathComponent],
-                  let assetURL = Bundle.module.url(forResource: asset.resource, withExtension: asset.ext)
-            else { throw URLError(.fileDoesNotExist) }
-            return (try Data(contentsOf: assetURL), asset.mime, "utf-8")
+            return try assetResponse(for: url)
         }
 
         let fileURL = URL(fileURLWithPath: url.path)
@@ -141,5 +133,34 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
         let mimeType = UTType(filenameExtension: fileURL.pathExtension)?.preferredMIMEType
             ?? "application/octet-stream"
         return (data, mimeType, nil)
+    }
+
+    private func assetResponse(for url: URL) throws -> (Data, String, String?) {
+        let mimeTypes = [
+            "js": "text/javascript",
+            "css": "text/css",
+            "woff2": "font/woff2",
+        ]
+        let components = url.pathComponents.filter { $0 != "/" }
+        guard !components.contains(".."),
+              let name = components.first,
+              let mimeType = mimeTypes[url.pathExtension.lowercased()]
+        else { throw URLError(.fileDoesNotExist) }
+
+        let assetURL: URL?
+        if name == "katex" {
+            assetURL = Bundle.module.url(forResource: "katex", withExtension: nil)
+                .map { components.dropFirst().reduce($0) { $0.appendingPathComponent($1) } }
+        } else if components.count == 1, ["mermaid.min.js", "highlight.min.js", "highlight.css"].contains(name) {
+            assetURL = Bundle.module.url(
+                forResource: (name as NSString).deletingPathExtension,
+                withExtension: url.pathExtension
+            )
+        } else {
+            assetURL = nil
+        }
+        guard let assetURL else { throw URLError(.fileDoesNotExist) }
+        let encoding = mimeType.hasPrefix("font") ? nil : "utf-8"
+        return (try Data(contentsOf: assetURL), mimeType, encoding)
     }
 }

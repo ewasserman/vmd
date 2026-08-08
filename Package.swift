@@ -29,6 +29,7 @@ let package = Package(
                 .copy("Resources/mermaid.min.js"),
                 .copy("Resources/highlight.min.js"),
                 .copy("Resources/highlight.css"),
+                .copy("Resources/katex"),
             ]
         ),
         .executableTarget(

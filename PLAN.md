@@ -40,6 +40,14 @@
 - [x] Find in page: ⌘F bar with ⌘G / ⇧⌘G next/previous
 - [x] Print / PDF export via ⌘P (system print dialog)
 
+## Post-1.0 additions
+
+- [x] LaTeX math via bundled KaTeX: `$inline$`, `$$display$$`, and ` ```math `
+      fences, with GitHub's delimiter rules. Math is extracted from the raw
+      markdown before cmark (so `\,`, `\\` etc. survive escape processing) and
+      restored afterwards — as KaTeX delimiters in prose, or verbatim inside
+      code blocks.
+
 ## Ideas / backlog
 
 - [ ] Table of contents sidebar

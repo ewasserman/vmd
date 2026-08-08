@@ -53,6 +53,23 @@ import Testing
         #expect(html.contains("<h3 id=\"with-code-too\">"))
     }
 
+    @Test func wrapsInlineAndDisplayMath() {
+        let html = MarkdownRenderer.html(from: "Euler: $e^{i\\pi} + 1 = 0$ inline.\n\n$$\\int_0^1 x\\,dx$$")
+        #expect(html.contains("\\(e^{i\\pi} + 1 = 0\\)"))
+        #expect(html.contains("\\[\\int_0^1 x\\,dx\\]"))
+    }
+
+    @Test func leavesDollarProseAlone() {
+        let html = MarkdownRenderer.html(from: "It costs $5 and $10 total, or $5-$8 on sale.")
+        #expect(!html.contains("\\("))
+    }
+
+    @Test func leavesMathInCodeBlocksAlone() {
+        let html = MarkdownRenderer.html(from: "`$x + y$`\n\n```\n$a + b$\n```")
+        #expect(!html.contains("\\(x + y\\)"))
+        #expect(!html.contains("\\(a + b\\)"))
+    }
+
     @Test func mermaidFencesKeepLanguageClass() {
         let html = MarkdownRenderer.html(from: "```mermaid\ngraph TD; A-->B;\n```")
         #expect(html.contains("language-mermaid"))
@@ -73,6 +90,18 @@ import Testing
 
         let diagram = HTMLTemplate.page(title: "t", body: "<pre><code class=\"language-mermaid\">graph TD;</code></pre>")
         #expect(diagram.contains(HTMLTemplate.mermaidScriptURL))
+    }
+
+    @Test func injectsKaTeXOnlyWhenMathPresent() {
+        let plain = HTMLTemplate.page(title: "t", body: "<p>hi</p>")
+        #expect(!plain.contains(HTMLTemplate.katexScriptURL))
+
+        let math = HTMLTemplate.page(title: "t", body: "<p>\\(x^2\\)</p>")
+        #expect(math.contains(HTMLTemplate.katexScriptURL))
+        #expect(math.contains(HTMLTemplate.katexStylesheetURL))
+
+        let fence = HTMLTemplate.page(title: "t", body: "<pre><code class=\"language-math\">x^2</code></pre>")
+        #expect(fence.contains(HTMLTemplate.katexScriptURL))
     }
 
     @Test func injectsHighlightingOnlyForCodeBlocks() {

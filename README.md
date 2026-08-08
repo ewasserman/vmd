@@ -3,7 +3,8 @@
 A simple, fast macOS markdown viewer with GitHub Flavored Markdown support, plus a `vmd` CLI that pops open a viewer window for any `.md` file.
 
 - **GFM**: tables, task lists, strikethrough, autolinks, footnotes
-- **Mermaid** diagrams and **syntax highlighting** (bundled, works offline)
+- **Mermaid** diagrams, **LaTeX math** (`$…$`, `$$…$$`, ` ```math ` fences via KaTeX),
+  and **syntax highlighting** — all bundled, works offline
 - GitHub-style typography with automatic light/dark mode
 - Live reload: the window re-renders (preserving scroll) when the file changes
 - Relative images and links just work; external links open in your browser
