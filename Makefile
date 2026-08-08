@@ -26,8 +26,10 @@ run: app
 install: app
 	rm -rf /Applications/VMD.app
 	cp -R $(APP) /Applications/VMD.app
-	install $(BUILD)/vmd $(PREFIX)/bin/vmd
-	@echo "Installed /Applications/VMD.app and $(PREFIX)/bin/vmd"
+	@echo "Installed /Applications/VMD.app"
+	@install $(BUILD)/vmd $(PREFIX)/bin/vmd 2>/dev/null \
+		&& echo "Installed $(PREFIX)/bin/vmd" \
+		|| echo "Could not write $(PREFIX)/bin/vmd — run: sudo install $(BUILD)/vmd $(PREFIX)/bin/vmd"
 
 clean:
 	rm -rf .build dist
