@@ -26,7 +26,10 @@ enum WindowBatcher {
         .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("VMD/batches", isDirectory: true)
 
-    static func adopt(_ window: NSWindow, showing fileURL: URL) {
+    /// Returns true when the window joined an existing batch window as a tab.
+    @discardableResult
+    static func adopt(_ window: NSWindow, showing fileURL: URL) -> Bool {
+        var joinedAsTab = false
         if let batchID = batchID(containing: fileURL) {
             if let host = hosts[batchID]?.window, host.isVisible, host !== window {
                 if window.tabGroup !== host.tabGroup {
@@ -34,6 +37,7 @@ enum WindowBatcher {
                     host.addTabbedWindow(window, ordered: .above)
                 }
                 window.makeKeyAndOrderFront(nil)
+                joinedAsTab = true
             } else {
                 // First window of its batch: it may still have been swept into
                 // an unrelated group by AppKit's automatic tabbing (which kicks
@@ -49,6 +53,7 @@ enum WindowBatcher {
         if let group = window.tabGroup, group.windows.count == 1, group.isTabBarVisible {
             window.toggleTabBar(nil)
         }
+        return joinedAsTab
     }
 
     private static func batchID(containing fileURL: URL) -> String? {
@@ -69,8 +74,10 @@ enum WindowBatcher {
 
     private static func detach(_ window: NSWindow) {
         guard let group = window.tabGroup, group.windows.count > 1 else { return }
-        group.removeWindow(window)
-        window.setFrameOrigin(NSPoint(x: window.frame.origin.x + 28, y: window.frame.origin.y - 28))
+        WindowFrameKeeper.withSavingSuppressed {
+            group.removeWindow(window)
+            window.setFrameOrigin(NSPoint(x: window.frame.origin.x + 28, y: window.frame.origin.y - 28))
+        }
         window.makeKeyAndOrderFront(nil)
     }
 }

@@ -27,7 +27,11 @@ struct MarkdownWebView: NSViewRepresentable {
         DispatchQueue.main.async { [weak webView] in
             guard let window = webView?.window else { return }
             window.isRestorable = false
-            WindowBatcher.adopt(window, showing: fileURL)
+            WindowFrameKeeper.installObservers()
+            let joinedAsTab = WindowBatcher.adopt(window, showing: fileURL)
+            if !joinedAsTab {
+                WindowFrameKeeper.applySavedFrame(to: window)
+            }
         }
         return webView
     }
