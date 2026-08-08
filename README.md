@@ -13,8 +13,10 @@ A simple, fast macOS markdown viewer with GitHub Flavored Markdown support, plus
 ## Install
 
 ```sh
-make install        # /Applications/VMD.app + /usr/local/bin/vmd (may need sudo)
+make install        # /Applications/VMD.app + ~/.local/bin/vmd — no sudo needed
 ```
+
+Set `PREFIX` for a different CLI location, e.g. `make install PREFIX=/usr/local` (needs sudo).
 
 ## Use
 
