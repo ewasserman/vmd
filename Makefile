@@ -14,10 +14,14 @@ build:
 test:
 	swift test
 
+# Optional release version stamped into the app's Info.plist (VERSION=1.2.3).
+VERSION ?=
+
 app: build
 	rm -rf $(APP)
 	mkdir -p $(APP)/Contents/MacOS $(APP)/Contents/Resources
 	cp Support/Info.plist $(APP)/Contents/Info.plist
+	$(if $(VERSION),plutil -replace CFBundleShortVersionString -string $(VERSION) $(APP)/Contents/Info.plist)
 	printf 'APPL????' > $(APP)/Contents/PkgInfo
 	cp $(BUILD)/VMDApp $(APP)/Contents/MacOS/VMD
 	cp -R $(BUILD)/vmd_VMDApp.bundle $(APP)/Contents/Resources/
