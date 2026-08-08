@@ -18,8 +18,27 @@ for url in urls where !FileManager.default.fileExists(atPath: url.path) {
     fail("no such file: \(url.path)", code: 66)
 }
 
-guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
-    fail("VMD.app not found — install it with `make install`", code: 69)
+// Launch Services knows the app once it has been registered; the fallbacks
+// cover fresh installs (Homebrew keeps the app in <prefix>/libexec next to
+// this binary) before any registration has happened.
+func locateApp() -> URL? {
+    if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+        return url
+    }
+    var candidates: [URL] = []
+    if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
+        candidates.append(
+            executable.deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("libexec/VMD.app")
+        )
+    }
+    candidates.append(URL(fileURLWithPath: "/Applications/VMD.app"))
+    candidates.append(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications/VMD.app"))
+    return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+}
+
+guard let appURL = locateApp() else {
+    fail("VMD.app not found — install it with `make install` or `brew install ewasserman/tap/vmd`", code: 69)
 }
 
 // Batch manifest: tells the app these files belong to one invocation so it

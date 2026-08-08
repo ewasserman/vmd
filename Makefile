@@ -4,8 +4,12 @@ APP = dist/VMD.app
 
 .PHONY: build test app run install clean
 
+# SWIFT_FLAGS lets Homebrew pass --disable-sandbox (SPM's sandbox conflicts
+# with Homebrew's build sandbox).
+SWIFT_FLAGS ?=
+
 build:
-	swift build -c release
+	swift build -c release $(SWIFT_FLAGS)
 
 test:
 	swift test

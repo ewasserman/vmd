@@ -15,6 +15,17 @@ A simple, fast macOS markdown viewer with GitHub Flavored Markdown support, plus
 
 ## Install
 
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install ewasserman/tap/vmd
+```
+
+The app builds from source on your machine, so there is no Gatekeeper
+quarantine and no notarization requirement.
+
+Or from a checkout:
+
 ```sh
 make install        # /Applications/VMD.app + ~/.local/bin/vmd — no sudo needed
 ```
