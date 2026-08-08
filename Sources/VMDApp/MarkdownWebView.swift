@@ -5,6 +5,7 @@ import VMDCore
 
 struct MarkdownWebView: NSViewRepresentable {
     let fileURL: URL
+    var model: ViewerModel?
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -16,6 +17,7 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.allowsBackForwardNavigationGestures = true
         webView.underPageBackgroundColor = .textBackgroundColor
         context.coordinator.webView = webView
+        model?.webView = webView
         context.coordinator.show(fileURL)
         return webView
     }
@@ -116,10 +118,15 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private func response(for url: URL) throws -> (Data, String, String?) {
         if url.host == "assets" {
-            guard url.lastPathComponent == "mermaid.min.js",
-                  let assetURL = Bundle.module.url(forResource: "mermaid.min", withExtension: "js")
+            let assets: [String: (resource: String, ext: String, mime: String)] = [
+                "mermaid.min.js": ("mermaid.min", "js", "text/javascript"),
+                "highlight.min.js": ("highlight.min", "js", "text/javascript"),
+                "highlight.css": ("highlight", "css", "text/css"),
+            ]
+            guard let asset = assets[url.lastPathComponent],
+                  let assetURL = Bundle.module.url(forResource: asset.resource, withExtension: asset.ext)
             else { throw URLError(.fileDoesNotExist) }
-            return (try Data(contentsOf: assetURL), "text/javascript", "utf-8")
+            return (try Data(contentsOf: assetURL), asset.mime, "utf-8")
         }
 
         let fileURL = URL(fileURLWithPath: url.path)

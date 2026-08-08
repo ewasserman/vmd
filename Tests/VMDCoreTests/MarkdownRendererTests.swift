@@ -4,7 +4,7 @@ import Testing
 @Suite struct MarkdownRendererTests {
     @Test func rendersBasicMarkdown() {
         let html = MarkdownRenderer.html(from: "# Hello\n\nSome *text*.")
-        #expect(html.contains("<h1>Hello</h1>"))
+        #expect(html.contains("<h1 id=\"hello\">Hello</h1>"))
         #expect(html.contains("<em>text</em>"))
     }
 
@@ -46,6 +46,13 @@ import Testing
         #expect(!html.contains("<script>"))
     }
 
+    @Test func addsGitHubStyleHeadingAnchors() {
+        let html = MarkdownRenderer.html(from: "# Hello World!\n\n## Hello World!\n\n### With `code` too")
+        #expect(html.contains("<h1 id=\"hello-world\">"))
+        #expect(html.contains("<h2 id=\"hello-world-1\">"))
+        #expect(html.contains("<h3 id=\"with-code-too\">"))
+    }
+
     @Test func mermaidFencesKeepLanguageClass() {
         let html = MarkdownRenderer.html(from: "```mermaid\ngraph TD; A-->B;\n```")
         #expect(html.contains("language-mermaid"))
@@ -66,5 +73,14 @@ import Testing
 
         let diagram = HTMLTemplate.page(title: "t", body: "<pre><code class=\"language-mermaid\">graph TD;</code></pre>")
         #expect(diagram.contains(HTMLTemplate.mermaidScriptURL))
+    }
+
+    @Test func injectsHighlightingOnlyForCodeBlocks() {
+        let plain = HTMLTemplate.page(title: "t", body: "<p>hi <code>x</code></p>")
+        #expect(!plain.contains(HTMLTemplate.highlightScriptURL))
+
+        let code = HTMLTemplate.page(title: "t", body: "<pre><code class=\"language-swift\">let x = 1</code></pre>")
+        #expect(code.contains(HTMLTemplate.highlightScriptURL))
+        #expect(code.contains(HTMLTemplate.highlightStylesheetURL))
     }
 }

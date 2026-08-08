@@ -25,7 +25,11 @@ let package = Package(
         .executableTarget(
             name: "VMDApp",
             dependencies: ["VMDCore"],
-            resources: [.copy("Resources/mermaid.min.js")]
+            resources: [
+                .copy("Resources/mermaid.min.js"),
+                .copy("Resources/highlight.min.js"),
+                .copy("Resources/highlight.css"),
+            ]
         ),
         .executableTarget(
             name: "vmd"

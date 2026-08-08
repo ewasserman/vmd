@@ -5,24 +5,37 @@ import Foundation
 /// Scripts are gated by a per-render CSP nonce: only template-injected
 /// scripts run; anything smuggled in via raw HTML in the markdown is blocked.
 public enum HTMLTemplate {
-    /// URL the app's vmd: scheme handler serves bundled assets from.
+    /// URLs the app's vmd: scheme handler serves bundled assets from.
     public static let mermaidScriptURL = "vmd://assets/mermaid.min.js"
+    public static let highlightScriptURL = "vmd://assets/highlight.min.js"
+    public static let highlightStylesheetURL = "vmd://assets/highlight.css"
 
     public static func page(title: String, body: String) -> String {
         let nonce = UUID().uuidString
-        let needsMermaid = body.contains("language-mermaid")
-        let scripts = needsMermaid ? """
-        <script nonce="\(nonce)" src="\(mermaidScriptURL)"></script>
-        <script nonce="\(nonce)">\(mermaidInit)</script>
-        """ : ""
+        var head = ""
+        var scripts = ""
+        if body.contains("<pre><code") {
+            // The stylesheet link precedes our inline CSS so our overrides win ties.
+            head += "<link rel=\"stylesheet\" href=\"\(highlightStylesheetURL)\">\n"
+            scripts += """
+            <script nonce="\(nonce)" src="\(highlightScriptURL)"></script>
+            <script nonce="\(nonce)">\(highlightInit)</script>
+            """
+        }
+        if body.contains("language-mermaid") {
+            scripts += """
+            <script nonce="\(nonce)" src="\(mermaidScriptURL)"></script>
+            <script nonce="\(nonce)">\(mermaidInit)</script>
+            """
+        }
         return """
         <!doctype html>
         <html>
         <head>
         <meta charset="utf-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vmd: data: http: https:; media-src vmd:; style-src 'unsafe-inline'; font-src vmd: data:; script-src 'nonce-\(nonce)'">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src vmd: data: http: https:; media-src vmd:; style-src 'unsafe-inline' vmd:; font-src vmd: data:; script-src 'nonce-\(nonce)'">
         <title>\(escape(title))</title>
-        <style>\(css)</style>
+        \(head)<style>\(css)</style>
         </head>
         <body><article class="markdown-body">
         \(body)
@@ -36,6 +49,13 @@ public enum HTMLTemplate {
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
     }
+
+    private static let highlightInit = """
+    document.querySelectorAll('pre > code').forEach(function (el) {
+      if (el.classList.contains('language-mermaid')) return;
+      hljs.highlightElement(el);
+    });
+    """
 
     private static let mermaidInit = """
     (function () {
@@ -121,6 +141,7 @@ public enum HTMLTemplate {
       line-height: 1.45;
     }
     pre code { background: transparent; padding: 0; font-size: 85%; }
+    pre code.hljs { background: transparent; padding: 0; }
     pre.mermaid {
       background: transparent;
       display: flex;

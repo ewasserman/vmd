@@ -33,7 +33,49 @@ public enum MarkdownRenderer {
             return ""
         }
         defer { free(rendered) }
-        return repairFootnoteBackrefs(String(cString: rendered))
+        return addHeadingAnchors(repairFootnoteBackrefs(String(cString: rendered)))
+    }
+
+    /// Adds GitHub-style `id` slugs to headings so `#fragment` links work.
+    /// cmark emits attribute-less headings, and heading-like text inside code
+    /// blocks is entity-escaped, so the pattern only matches real headings.
+    private static func addHeadingAnchors(_ html: String) -> String {
+        var seen: [String: Int] = [:]
+        let pattern = try! NSRegularExpression(pattern: "<h([1-6])>(.*?)</h\\1>", options: [.dotMatchesLineSeparators])
+        let full = NSRange(html.startIndex..., in: html)
+        var result = ""
+        var cursor = html.startIndex
+        for match in pattern.matches(in: html, range: full) {
+            guard let range = Range(match.range, in: html),
+                  let levelRange = Range(match.range(at: 1), in: html),
+                  let innerRange = Range(match.range(at: 2), in: html) else { continue }
+            let level = html[levelRange]
+            let inner = String(html[innerRange])
+            var slug = slugify(inner)
+            let count = seen[slug, default: 0]
+            seen[slug] = count + 1
+            if count > 0 { slug += "-\(count)" }
+            result += html[cursor..<range.lowerBound]
+            result += "<h\(level) id=\"\(slug)\">\(inner)</h\(level)>"
+            cursor = range.upperBound
+        }
+        result += html[cursor...]
+        return result
+    }
+
+    private static func slugify(_ headingHTML: String) -> String {
+        let text = headingHTML
+            .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+            .lowercased()
+        var slug = ""
+        for character in text {
+            if character.isLetter || character.isNumber || character == "-" || character == "_" {
+                slug.append(character)
+            } else if character == " " {
+                slug.append("-")
+            }
+        }
+        return slug
     }
 
     /// cmark-gfm (src/html.c) emits footnote backrefs with an unterminated

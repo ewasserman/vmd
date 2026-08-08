@@ -2,10 +2,12 @@ import SwiftUI
 
 @main
 struct VMDApp: App {
+    @FocusedValue(\.viewerModel) private var viewerModel
+
     var body: some Scene {
         DocumentGroup(viewing: MarkdownDocument.self) { configuration in
             if let url = configuration.fileURL {
-                MarkdownWebView(fileURL: url)
+                DocumentView(fileURL: url)
             } else {
                 ContentUnavailableView(
                     "No Document",
@@ -15,5 +17,17 @@ struct VMDApp: App {
             }
         }
         .defaultSize(width: 900, height: 1000)
+        .commands {
+            CommandGroup(after: .textEditing) {
+                Button("Find…") { viewerModel?.isFindVisible = true }
+                    .keyboardShortcut("f")
+                    .disabled(viewerModel == nil)
+            }
+            CommandGroup(replacing: .printItem) {
+                Button("Print…") { viewerModel?.printDocument() }
+                    .keyboardShortcut("p")
+                    .disabled(viewerModel == nil)
+            }
+        }
     }
 }

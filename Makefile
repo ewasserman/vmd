@@ -17,6 +17,7 @@ app: build
 	printf 'APPL????' > $(APP)/Contents/PkgInfo
 	cp $(BUILD)/VMDApp $(APP)/Contents/MacOS/VMD
 	cp -R $(BUILD)/vmd_VMDApp.bundle $(APP)/Contents/Resources/
+	cp Support/AppIcon.icns $(APP)/Contents/Resources/AppIcon.icns
 	codesign --force --sign - $(APP)
 	@echo "Built $(APP)"
 
