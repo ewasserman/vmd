@@ -20,6 +20,23 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.webView = webView
         model?.webView = webView
         context.coordinator.show(fileURL, source: showsSource)
+        // Group document windows as tabs (vmd a.md b.md → one window).
+        // SwiftUI has no tabbingMode API, and windows opened in the same
+        // launch batch appear before tabbingMode could influence them, so
+        // adopt each new window into an existing window's tab group directly.
+        DispatchQueue.main.async { [weak webView] in
+            guard let window = webView?.window else { return }
+            window.tabbingMode = .preferred
+            if let group = window.tabGroup, group.windows.count > 1 { return }
+            if let host = NSApp.windows.first(where: {
+                $0 !== window && $0.isVisible && !($0 is NSPanel)
+                    && $0.tabbingIdentifier == window.tabbingIdentifier
+                    && ($0.tabGroup == nil || $0.tabGroup !== window.tabGroup)
+            }) {
+                host.addTabbedWindow(window, ordered: .above)
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
         return webView
     }
 
