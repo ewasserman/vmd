@@ -91,6 +91,20 @@ struct MarkdownWebView: NSViewRepresentable {
     }
 }
 
+extension Bundle {
+    /// SPM's generated Bundle.module for executable targets only checks the
+    /// app-bundle ROOT and the machine-specific build directory, so it traps
+    /// on installed copies. Look in Contents/Resources (where the Makefile
+    /// puts the bundle) first; fall back to Bundle.module for `swift run`.
+    static let appResources: Bundle = {
+        if let url = Bundle.main.resourceURL?.appendingPathComponent("vmd_VMDApp.bundle"),
+           let bundle = Bundle(url: url) {
+            return bundle
+        }
+        return .module
+    }()
+}
+
 /// Serves content for vmd: URLs.
 ///
 /// - `vmd:///absolute/path` — markdown files are rendered to a full HTML
@@ -170,10 +184,10 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
 
         let assetURL: URL?
         if name == "katex" {
-            assetURL = Bundle.module.url(forResource: "katex", withExtension: nil)
+            assetURL = Bundle.appResources.url(forResource: "katex", withExtension: nil)
                 .map { components.dropFirst().reduce($0) { $0.appendingPathComponent($1) } }
         } else if components.count == 1, ["mermaid.min.js", "highlight.min.js", "highlight.css"].contains(name) {
-            assetURL = Bundle.module.url(
+            assetURL = Bundle.appResources.url(
                 forResource: (name as NSString).deletingPathExtension,
                 withExtension: url.pathExtension
             )
