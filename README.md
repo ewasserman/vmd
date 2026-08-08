@@ -1,21 +1,42 @@
 # vmd
 
-A simple macOS markdown viewer with GitHub Flavored Markdown support, plus a `vmd` CLI that opens a viewer window for any `.md` file.
+A simple, fast macOS markdown viewer with GitHub Flavored Markdown support, plus a `vmd` CLI that pops open a viewer window for any `.md` file.
+
+- **GFM**: tables, task lists, strikethrough, autolinks, footnotes
+- **Mermaid** diagrams (bundled, works offline)
+- GitHub-style typography with automatic light/dark mode
+- Live reload: the window re-renders (preserving scroll) when the file changes
+- Relative images and links just work; external links open in your browser
+- Raw HTML renders GitHub-style — dangerous tags are filtered and a strict CSP
+  keeps markdown-supplied content inert
+
+## Install
+
+```sh
+make install        # /Applications/VMD.app + /usr/local/bin/vmd (may need sudo)
+```
+
+## Use
+
+```sh
+vmd README.md       # open a viewer window
+vmd a.md b.md       # one window per file
+```
+
+Or open `.md` files from Finder via "Open With → VMD", or ⌘O inside the app.
+
+## Develop
+
+```sh
+swift build         # build everything
+swift test          # run tests
+make run            # build dist/VMD.app and launch it
+```
 
 ## Layout
 
-- `VMDCore` — shared library: GFM → HTML rendering via [cmark-gfm](https://github.com/apple/swift-cmark) (tables, strikethrough, autolinks, task lists)
-- `VMDApp` — the SwiftUI viewer app (`VMD.app`)
-- `vmd` — command-line launcher: `vmd README.md` pops open a viewer window
+- `Sources/VMDCore` — GFM → HTML via [cmark-gfm](https://github.com/apple/swift-cmark), plus the HTML/CSS page template
+- `Sources/VMDApp` — SwiftUI document app; a custom `vmd:` URL scheme handler feeds `WKWebView`
+- `Sources/vmd` — CLI launcher
 
-## Building
-
-```sh
-swift build          # build everything
-swift test           # run tests
-swift run vmd <file> # run the CLI
-```
-
-## Status
-
-Scaffold — see [PLAN.md](PLAN.md) for the development plan.
+See [PLAN.md](PLAN.md) for the development plan.

@@ -1,38 +1,44 @@
 # Development plan
 
-## Milestone 1 — Rendering pipeline (VMDCore)
+## Milestone 1 — Rendering pipeline (VMDCore) ✅
 
-- [x] GFM → HTML via cmark-gfm (tables, strikethrough, autolink, task lists)
-- [ ] HTML page template with GitHub-style CSS, light/dark via `prefers-color-scheme`
-- [ ] Sanitization decision: keep cmark's safe defaults (raw HTML stripped) for v1
+- [x] GFM → HTML via cmark-gfm (tables, strikethrough, autolink, task lists, footnotes)
+- [x] Raw HTML passes through GitHub-style: tagfilter escapes dangerous tags, and a
+      per-render CSP nonce blocks any markdown-supplied script from executing
+- [x] Workaround for cmark-gfm's unterminated footnote-backref `aria-label`
+- [x] HTML page template with GitHub-style CSS, light/dark via `prefers-color-scheme`
+- [x] Mermaid diagrams: bundled `mermaid.min.js` (offline), injected only when a
+      ```` ```mermaid ```` fence is present
 
-## Milestone 2 — Viewer app (VMDApp)
+## Milestone 2 — Viewer app (VMDApp) ✅
 
-- [ ] Read-only document app: `DocumentGroup(viewing:)` with a `FileDocument` for markdown
-- [ ] `WKWebView` wrapper (`NSViewRepresentable`) rendering the HTML template
-- [ ] Load via `loadFileURL` with directory read access so relative images resolve
-- [ ] Link policy: external links open in default browser; relative `.md` links open a new viewer window
-- [ ] Window title = file name; sensible default window size
+- [x] Read-only document app: `DocumentGroup(viewing:)` (open panel, recents, Finder integration)
+- [x] `WKWebView` wrapper rendering via a custom `vmd:` URL scheme handler, so
+      relative images and links resolve without temp files
+- [x] Link policy: relative `.md` links navigate in-window (with back/forward);
+      everything else opens externally
+- [x] Auto-reload on file change (debounced, survives atomic saves, preserves scroll)
+- [x] Window title = file name; 900×1000 default window
 
-## Milestone 3 — App bundle
+## Milestone 3 — App bundle ✅
 
-- [ ] `Makefile` + script to assemble `VMD.app` from the SPM build (Info.plist, executable, ad-hoc codesign)
-- [ ] Info.plist declares the `net.daringfireball.markdown` document type so Finder "Open With" and `open` work
-- [ ] `make install` → copies `VMD.app` to `/Applications`
+- [x] `make app` assembles `dist/VMD.app` (Info.plist, resources, ad-hoc codesign)
+- [x] Info.plist declares `net.daringfireball.markdown` so Finder "Open With" works
+- [x] `make install` → `/Applications/VMD.app` + `vmd` CLI
 
-## Milestone 4 — CLI (`vmd`)
+## Milestone 4 — CLI (`vmd`) ✅
 
-- [ ] `vmd file.md` resolves the path and launches the app via `NSWorkspace`/bundle id (new window per file)
-- [ ] Friendly errors: missing file, app not installed
-- [ ] `make install` also links `vmd` into `/usr/local/bin`
+- [x] `vmd file.md [more.md ...]` resolves paths and opens windows via `NSWorkspace`
+- [x] Friendly errors: usage, missing file, app not installed
 
 ## Milestone 5 — Polish
 
-- [ ] Auto-reload on file change (DispatchSource file watcher), preserving scroll position
 - [ ] App icon
-- [ ] Recent files menu
-- [ ] Cmd+P print / PDF export
+- [ ] Heading anchor ids (in-page `#fragment` links)
+- [ ] Syntax highlighting for fenced code blocks
+- [ ] Find in page (⌘F)
+- [ ] Print / PDF export
 
-## Milestone 6 — CI
+## Milestone 6 — CI ✅
 
-- [ ] GitHub Actions: `swift build && swift test` on macOS
+- [x] GitHub Actions: `swift build && swift test` on macOS
