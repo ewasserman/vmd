@@ -1,4 +1,5 @@
 import AppKit
+import VMDCore
 
 let bundleIdentifier = "com.ewasserman.vmd"
 
@@ -7,9 +8,17 @@ func fail(_ message: String, code: Int32) -> Never {
     exit(code)
 }
 
-let arguments = CommandLine.arguments.dropFirst()
-guard !arguments.isEmpty, !arguments.contains("-h"), !arguments.contains("--help") else {
-    FileHandle.standardError.write(Data("usage: vmd <file.md> [more.md ...]\n".utf8))
+var arguments = Array(CommandLine.arguments.dropFirst())
+let exportHTML = arguments.first == "--html"
+if exportHTML { arguments.removeFirst() }
+
+guard !arguments.isEmpty, !arguments.contains("-h"), !arguments.contains("--help"),
+      !(exportHTML && arguments.count != 1) else {
+    FileHandle.standardError.write(Data("""
+    usage: vmd <file.md> [more.md ...]     open viewer windows
+           vmd --html <file.md>            write standalone HTML to stdout
+
+    """.utf8))
     exit(64)
 }
 
@@ -40,6 +49,23 @@ func locateApp() -> URL? {
 
 guard let appURL = locateApp() else {
     fail("VMD.app not found — install it with `make install` or `brew install ewasserman/tap/vmd`", code: 69)
+}
+
+if exportHTML {
+    let fileURL = urls[0]
+    do {
+        let markdown = try String(contentsOf: fileURL, encoding: .utf8)
+        let assetsURL = appURL.appendingPathComponent("Contents/Resources/vmd_VMDApp.bundle")
+        let html = HTMLTemplate.exportPage(
+            title: fileURL.lastPathComponent,
+            body: MarkdownRenderer.html(from: markdown),
+            assets: AssetStore(resourceBundleURL: assetsURL)
+        )
+        FileHandle.standardOutput.write(Data(html.utf8))
+        exit(0)
+    } catch {
+        fail(error.localizedDescription, code: 74)
+    }
 }
 
 // Batch manifest: tells the app these files belong to one invocation so it

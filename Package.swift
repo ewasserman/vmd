@@ -33,7 +33,8 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "vmd"
+            name: "vmd",
+            dependencies: ["VMDCore"]
         ),
         .testTarget(
             name: "VMDCoreTests",

@@ -10,6 +10,8 @@ A simple, fast macOS markdown viewer with GitHub Flavored Markdown support, plus
 - Relative images and links just work; external links open in your browser
 - Heading anchors, find in page (⌘F), print / save as PDF (⌘P), and a
   syntax-highlighted source view (⇧⌘U or the toolbar toggle)
+- Export as a single self-contained HTML file (⇧⌘E, or `vmd --html file.md > out.html`) —
+  diagrams, math fonts, and highlighting all embedded, works offline
 - Raw HTML renders GitHub-style — dangerous tags are filtered and a strict CSP
   keeps markdown-supplied content inert
 
@@ -37,6 +39,7 @@ Set `PREFIX` for a different CLI location, e.g. `make install PREFIX=/usr/local`
 ```sh
 vmd README.md       # open a viewer window
 vmd a.md b.md       # multiple files become tabs of one new window
+vmd --html a.md     # standalone HTML on stdout
 ```
 
 Or open `.md` files from Finder via "Open With → VMD", or ⌘O inside the app.

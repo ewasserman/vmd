@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:vmd}",
+            "name": "Debug VMDApp",
+            "target": "VMDApp",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug VMDApp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:vmd}",
+            "name": "Release VMDApp",
+            "target": "VMDApp",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release VMDApp"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:vmd}",
+            "name": "Debug vmd",
+            "target": "vmd",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug vmd"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:vmd}",
+            "name": "Release vmd",
+            "target": "vmd",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release vmd"
+        }
+    ]
+}

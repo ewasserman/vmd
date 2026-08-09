@@ -54,7 +54,8 @@
 ## Ideas / backlog
 
 - [ ] Table of contents sidebar
-- [ ] Export rendered HTML
+- [x] Export rendered HTML: single self-contained file (assets embedded as
+      data: URIs, KaTeX fonts inlined into the CSS) via ⇧⌘E or vmd --html
 - [x] Homebrew tap (ewasserman/tap/vmd) — builds from source, so no
       quarantine and no Apple notarization needed
 

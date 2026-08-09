@@ -19,6 +19,7 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.underPageBackgroundColor = .textBackgroundColor
         context.coordinator.webView = webView
         model?.webView = webView
+        model?.fileURL = fileURL
         context.coordinator.show(fileURL, source: showsSource)
         // Files from one vmd CLI invocation become tabs of that invocation's
         // window; the window only exists after the view attaches. Windows are

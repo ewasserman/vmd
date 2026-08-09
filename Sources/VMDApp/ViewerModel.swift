@@ -1,13 +1,37 @@
 import SwiftUI
 import WebKit
+import UniformTypeIdentifiers
+import VMDCore
 
 /// Bridges the focused document window's webview to SwiftUI (find bar) and
 /// menu commands (find, print).
 @MainActor
 final class ViewerModel: ObservableObject {
     weak var webView: WKWebView?
+    var fileURL: URL?
     @Published var isFindVisible = false
     @Published var showsSource = false
+
+    func exportHTML() {
+        guard let webView, let window = webView.window, let fileURL else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.html]
+        panel.nameFieldStringValue = fileURL.deletingPathExtension().lastPathComponent + ".html"
+        panel.beginSheetModal(for: window) { response in
+            guard response == .OK, let destination = panel.url else { return }
+            do {
+                let markdown = try String(contentsOf: fileURL, encoding: .utf8)
+                let html = HTMLTemplate.exportPage(
+                    title: fileURL.lastPathComponent,
+                    body: MarkdownRenderer.html(from: markdown),
+                    assets: AssetStore(resourceBundleURL: Bundle.appResources.bundleURL)
+                )
+                try html.write(to: destination, atomically: true, encoding: .utf8)
+            } catch {
+                NSAlert(error: error).runModal()
+            }
+        }
+    }
 
     func find(_ text: String, backwards: Bool = false) {
         guard let webView, !text.isEmpty else { return }

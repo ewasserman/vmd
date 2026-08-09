@@ -68,6 +68,67 @@ public enum HTMLTemplate {
         """
     }
 
+    /// A fully self-contained page for saving outside the app: highlighting,
+    /// mermaid, and KaTeX (including fonts) are embedded from the given asset
+    /// store, so the file works offline with no external references. Scripts
+    /// are embedded as base64 data: URIs — minified libraries contain
+    /// sequences like `<script` that break HTML parsing when inlined as text.
+    public static func exportPage(title: String, body: String, assets: AssetStore) -> String {
+        var head = ""
+        var scripts = ""
+        if body.contains("<pre><code"), let css = assets.text("highlight.css"), let js = assets.data("highlight.min.js") {
+            head += "<style>\(css)</style>\n"
+            scripts += embeddedScript(js) + "<script>\(highlightInit)</script>"
+        }
+        if body.contains("language-mermaid"), let js = assets.data("mermaid.min.js") {
+            scripts += embeddedScript(js) + "<script>\(mermaidInit)</script>"
+        }
+        if body.contains("\\(") || body.contains("\\[") || body.contains("language-math"),
+           let katexCSS = assets.text("katex/katex.min.css"),
+           let katexJS = assets.data("katex/katex.min.js"),
+           let autoRenderJS = assets.data("katex/auto-render.min.js") {
+            head += "<style>\(inlineKaTeXFonts(katexCSS, assets: assets))</style>\n"
+            scripts += embeddedScript(katexJS) + embeddedScript(autoRenderJS) + "<script>\(katexInit)</script>"
+        }
+        return """
+        <!doctype html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <title>\(escape(title))</title>
+        \(head)<style>\(css)</style>
+        </head>
+        <body><article class="markdown-body">
+        \(body)
+        </article>\(scripts)</body>
+        </html>
+        """
+    }
+
+    private static func embeddedScript(_ data: Data) -> String {
+        "<script src=\"data:text/javascript;base64,\(data.base64EncodedString())\"></script>"
+    }
+
+    /// Rewrites `url(fonts/*.woff2)` references to embedded data: URIs.
+    private static func inlineKaTeXFonts(_ css: String, assets: AssetStore) -> String {
+        let pattern = try! NSRegularExpression(pattern: "url\\(fonts/([^)]+\\.woff2)\\)")
+        var result = ""
+        var cursor = css.startIndex
+        for match in pattern.matches(in: css, range: NSRange(css.startIndex..., in: css)) {
+            guard let range = Range(match.range, in: css),
+                  let nameRange = Range(match.range(at: 1), in: css) else { continue }
+            result += css[cursor..<range.lowerBound]
+            if let font = assets.data("katex/fonts/\(css[nameRange])") {
+                result += "url(data:font/woff2;base64,\(font.base64EncodedString()))"
+            } else {
+                result += css[range]
+            }
+            cursor = range.upperBound
+        }
+        result += css[cursor...]
+        return result
+    }
+
     private static func escape(_ text: String) -> String {
         text.replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")

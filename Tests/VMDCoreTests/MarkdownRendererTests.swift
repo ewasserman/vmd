@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import VMDCore
 
@@ -73,6 +74,50 @@ import Testing
     @Test func mermaidFencesKeepLanguageClass() {
         let html = MarkdownRenderer.html(from: "```mermaid\ngraph TD; A-->B;\n```")
         #expect(html.contains("language-mermaid"))
+    }
+}
+
+@Suite struct ExportPageTests {
+    private func makeStore() throws -> (AssetStore, URL) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("vmd-export-test-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: dir.appendingPathComponent("katex/fonts"), withIntermediateDirectories: true
+        )
+        try "/* hl css */".write(to: dir.appendingPathComponent("highlight.css"), atomically: true, encoding: .utf8)
+        try "hljs=1".write(to: dir.appendingPathComponent("highlight.min.js"), atomically: true, encoding: .utf8)
+        try "mermaid=1".write(to: dir.appendingPathComponent("mermaid.min.js"), atomically: true, encoding: .utf8)
+        try "@font-face{src:url(fonts/K.woff2)}".write(
+            to: dir.appendingPathComponent("katex/katex.min.css"), atomically: true, encoding: .utf8)
+        try "katex=1".write(to: dir.appendingPathComponent("katex/katex.min.js"), atomically: true, encoding: .utf8)
+        try "ar=1".write(to: dir.appendingPathComponent("katex/auto-render.min.js"), atomically: true, encoding: .utf8)
+        try Data("F".utf8).write(to: dir.appendingPathComponent("katex/fonts/K.woff2"))
+        return (AssetStore(resourceBundleURL: dir), dir)
+    }
+
+    @Test func embedsEverythingWithNoExternalReferences() throws {
+        let (store, dir) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let body = """
+        <pre><code class="language-swift">let x = 1</code></pre>
+        <pre><code class="language-mermaid">graph TD;</code></pre>
+        <p>\\(x^2\\)</p>
+        """
+        let page = HTMLTemplate.exportPage(title: "t", body: body, assets: store)
+        #expect(page.contains("/* hl css */"))
+        #expect(page.contains("data:text/javascript;base64,"))
+        #expect(page.contains("url(data:font/woff2;base64,"))
+        #expect(!page.contains("vmd://"))
+        #expect(!page.contains("http://"))
+        #expect(!page.contains("https://"))
+    }
+
+    @Test func plainDocumentEmbedsNothing() throws {
+        let (store, dir) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let page = HTMLTemplate.exportPage(title: "t", body: "<p>hi</p>", assets: store)
+        #expect(!page.contains("data:text/javascript"))
+        #expect(page.contains("<p>hi</p>"))
     }
 }
 

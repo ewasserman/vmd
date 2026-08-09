@@ -18,6 +18,11 @@ struct VMDApp: App {
         }
         .defaultSize(width: 900, height: 1000)
         .commands {
+            CommandGroup(after: .saveItem) {
+                Button("Export as HTML…") { viewerModel?.exportHTML() }
+                    .keyboardShortcut("e", modifiers: [.command, .shift])
+                    .disabled(viewerModel == nil)
+            }
             CommandGroup(after: .textEditing) {
                 Button("Find…") { viewerModel?.isFindVisible = true }
                     .keyboardShortcut("f")
