@@ -7,7 +7,12 @@ struct DocumentView: View {
     @FocusState private var findFieldFocused: Bool
 
     var body: some View {
-        MarkdownWebView(fileURL: fileURL, model: model, showsSource: model.showsSource)
+        MarkdownWebView(
+            fileURL: fileURL,
+            model: model,
+            showsSource: model.showsSource,
+            usesFullWidth: model.usesFullWidth
+        )
             .overlay(alignment: .topTrailing) {
                 if model.isFindVisible { findBar }
             }

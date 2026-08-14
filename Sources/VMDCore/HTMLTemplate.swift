@@ -14,16 +14,20 @@ public enum HTMLTemplate {
     public static let katexStylesheetURL = "vmd://assets/katex/katex.min.css"
 
     /// A page showing raw markdown source as a highlighted code block.
-    public static func sourcePage(title: String, source: String) -> String {
+    public static func sourcePage(title: String, source: String, fullWidth: Bool = false) -> String {
         page(
             title: title,
             body: "<pre><code class=\"language-markdown\">\(escape(source))</code></pre>",
-            articleClass: "markdown-body source-view"
+            articleClass: articleClass("markdown-body source-view", fullWidth: fullWidth)
         )
     }
 
-    public static func page(title: String, body: String) -> String {
-        page(title: title, body: body, articleClass: "markdown-body")
+    public static func page(title: String, body: String, fullWidth: Bool = false) -> String {
+        page(title: title, body: body, articleClass: articleClass("markdown-body", fullWidth: fullWidth))
+    }
+
+    private static func articleClass(_ base: String, fullWidth: Bool) -> String {
+        fullWidth ? base + " full-width" : base
     }
 
     private static func page(title: String, body: String, articleClass: String) -> String {
@@ -281,6 +285,7 @@ public enum HTMLTemplate {
     img { max-width: 100%; height: auto; }
     hr { border: 0; height: 1px; background: var(--border); margin: 24px 0; }
     .source-view { max-width: 1100px; }
+    .markdown-body.full-width { max-width: none; }
     .footnotes {
       margin-top: 32px;
       font-size: 85%;

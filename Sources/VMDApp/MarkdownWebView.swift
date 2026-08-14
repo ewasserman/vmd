@@ -7,6 +7,7 @@ struct MarkdownWebView: NSViewRepresentable {
     let fileURL: URL
     var model: ViewerModel?
     var showsSource = false
+    var usesFullWidth = false
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -20,7 +21,7 @@ struct MarkdownWebView: NSViewRepresentable {
         context.coordinator.webView = webView
         model?.webView = webView
         model?.fileURL = fileURL
-        context.coordinator.show(fileURL, source: showsSource)
+        context.coordinator.show(fileURL, source: showsSource, fullWidth: usesFullWidth)
         // Files from one vmd CLI invocation become tabs of that invocation's
         // window; the window only exists after the view attaches. Windows are
         // not restorable: relaunching would resurrect stale documents and
@@ -38,8 +39,10 @@ struct MarkdownWebView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.watchedURL != fileURL || context.coordinator.showsSource != showsSource {
-            context.coordinator.show(fileURL, source: showsSource)
+        if context.coordinator.watchedURL != fileURL
+            || context.coordinator.showsSource != showsSource
+            || context.coordinator.usesFullWidth != usesFullWidth {
+            context.coordinator.show(fileURL, source: showsSource, fullWidth: usesFullWidth)
         }
     }
 
@@ -48,16 +51,29 @@ struct MarkdownWebView: NSViewRepresentable {
         weak var webView: WKWebView?
         private(set) var watchedURL: URL?
         private(set) var showsSource = false
+        private(set) var usesFullWidth = false
         private var watcher: FileWatcher?
         private var pendingScrollY: Double?
 
-        func show(_ url: URL, source: Bool) {
+        func show(_ url: URL, source: Bool, fullWidth: Bool) {
+            // A width-only change re-renders the same content, so keep the
+            // reading position instead of jumping back to the top.
+            let keepsScroll = watchedURL == url && showsSource == source
             watchedURL = url
             showsSource = source
+            usesFullWidth = fullWidth
             watcher = FileWatcher(url: url) { [weak self] in
                 self?.reloadPreservingScroll()
             }
-            webView?.load(URLRequest(url: MarkdownSchemeHandler.pageURL(for: url, source: source)))
+            let request = URLRequest(url: MarkdownSchemeHandler.pageURL(for: url, source: source, fullWidth: fullWidth))
+            guard keepsScroll, let webView else {
+                self.webView?.load(request)
+                return
+            }
+            webView.evaluateJavaScript("window.scrollY") { [weak self] value, _ in
+                self?.pendingScrollY = value as? Double
+                self?.webView?.load(request)
+            }
         }
 
         private func reloadPreservingScroll() {
@@ -117,13 +133,20 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
 
     private static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn", "txt", "text"]
 
-    static func pageURL(for fileURL: URL, source: Bool = false) -> URL {
+    static func pageURL(for fileURL: URL, source: Bool = false, fullWidth: Bool = false) -> URL {
         var components = URLComponents()
         components.scheme = scheme
         components.host = ""
         components.path = fileURL.standardizedFileURL.path
+        var queryItems: [URLQueryItem] = []
         if source {
-            components.queryItems = [URLQueryItem(name: "view", value: "source")]
+            queryItems.append(URLQueryItem(name: "view", value: "source"))
+        }
+        if fullWidth {
+            queryItems.append(URLQueryItem(name: "width", value: "full"))
+        }
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
         }
         return components.url!
     }
@@ -159,11 +182,16 @@ final class MarkdownSchemeHandler: NSObject, WKURLSchemeHandler {
         let data = try Data(contentsOf: fileURL)
         if Self.markdownExtensions.contains(fileURL.pathExtension.lowercased()) {
             let text = String(decoding: data, as: UTF8.self)
-            let wantsSource = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                .queryItems?.contains { $0.name == "view" && $0.value == "source" } ?? false
+            let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let wantsSource = queryItems.contains { $0.name == "view" && $0.value == "source" }
+            let fullWidth = queryItems.contains { $0.name == "width" && $0.value == "full" }
             let html = wantsSource
-                ? HTMLTemplate.sourcePage(title: fileURL.lastPathComponent, source: text)
-                : HTMLTemplate.page(title: fileURL.lastPathComponent, body: MarkdownRenderer.html(from: text))
+                ? HTMLTemplate.sourcePage(title: fileURL.lastPathComponent, source: text, fullWidth: fullWidth)
+                : HTMLTemplate.page(
+                    title: fileURL.lastPathComponent,
+                    body: MarkdownRenderer.html(from: text),
+                    fullWidth: fullWidth
+                )
             return (Data(html.utf8), "text/html", "utf-8")
         }
         let mimeType = UTType(filenameExtension: fileURL.pathExtension)?.preferredMIMEType

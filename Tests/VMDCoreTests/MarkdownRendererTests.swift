@@ -149,6 +149,18 @@ import Testing
         #expect(fence.contains(HTMLTemplate.katexScriptURL))
     }
 
+    @Test func fullWidthAddsClassOverridingMaxWidth() {
+        let framed = HTMLTemplate.page(title: "t", body: "<p>hi</p>")
+        #expect(!framed.contains("full-width\""))
+
+        let wide = HTMLTemplate.page(title: "t", body: "<p>hi</p>", fullWidth: true)
+        #expect(wide.contains("<article class=\"markdown-body full-width\">"))
+        #expect(wide.contains(".markdown-body.full-width { max-width: none; }"))
+
+        let wideSource = HTMLTemplate.sourcePage(title: "t", source: "# Hi", fullWidth: true)
+        #expect(wideSource.contains("<article class=\"markdown-body source-view full-width\">"))
+    }
+
     @Test func sourcePageShowsEscapedMarkdownWithHighlighting() {
         let page = HTMLTemplate.sourcePage(title: "t", source: "# Hi <b>\n\n$x$")
         #expect(page.contains("class=\"language-markdown\""))
