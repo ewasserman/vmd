@@ -11,6 +11,10 @@ final class ViewerModel: ObservableObject {
     var fileURL: URL?
     @Published var isFindVisible = false
     @Published var showsSource = false
+    // Persisted so new windows open with the layout the user last chose.
+    @Published var usesFullWidth = UserDefaults.standard.object(forKey: "usesFullWidth") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(usesFullWidth, forKey: "usesFullWidth") }
+    }
 
     func exportHTML() {
         guard let webView, let window = webView.window, let fileURL else { return }

@@ -35,6 +35,12 @@ struct VMDApp: App {
                 ))
                 .keyboardShortcut("u", modifiers: [.command, .shift])
                 .disabled(viewerModel == nil)
+                Toggle("Full Width", isOn: Binding(
+                    get: { viewerModel?.usesFullWidth ?? false },
+                    set: { viewerModel?.usesFullWidth = $0 }
+                ))
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+                .disabled(viewerModel == nil)
             }
             CommandGroup(replacing: .printItem) {
                 Button("Print…") { viewerModel?.printDocument() }
