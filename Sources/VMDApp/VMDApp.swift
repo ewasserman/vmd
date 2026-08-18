@@ -43,9 +43,16 @@ struct VMDApp: App {
                 .disabled(viewerModel == nil)
             }
             CommandGroup(replacing: .printItem) {
-                Button("Print…") { viewerModel?.printDocument() }
-                    .keyboardShortcut("p")
-                    .disabled(viewerModel == nil)
+                Button { viewerModel?.runPageLayout() } label: {
+                    Label("Page Setup…", systemImage: "doc")
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .disabled(viewerModel == nil)
+                Button { viewerModel?.printDocument() } label: {
+                    Label("Print…", systemImage: "printer")
+                }
+                .keyboardShortcut("p")
+                .disabled(viewerModel == nil)
             }
         }
     }

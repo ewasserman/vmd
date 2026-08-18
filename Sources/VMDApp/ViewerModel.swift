@@ -53,18 +53,31 @@ final class ViewerModel: ObservableObject {
         webView?.evaluateJavaScript("window.getSelection().removeAllRanges()")
     }
 
+    /// Shared across Page Setup and Print so paper size and orientation stick
+    /// between the two panels, the way AppKit apps normally behave.
+    private lazy var printInfo: NSPrintInfo = {
+        let info = NSPrintInfo()
+        info.horizontalPagination = .fit
+        info.verticalPagination = .automatic
+        info.topMargin = 36
+        info.bottomMargin = 36
+        info.leftMargin = 28
+        info.rightMargin = 28
+        return info
+    }()
+
+    func runPageLayout() {
+        guard let window = webView?.window else { return }
+        NSPageLayout().beginSheet(with: printInfo, modalFor: window, delegate: nil, didEnd: nil, contextInfo: nil)
+    }
+
     func printDocument() {
         guard let webView, let window = webView.window else { return }
-        let printInfo = NSPrintInfo()
-        printInfo.horizontalPagination = .fit
-        printInfo.verticalPagination = .automatic
-        printInfo.topMargin = 36
-        printInfo.bottomMargin = 36
-        printInfo.leftMargin = 28
-        printInfo.rightMargin = 28
         let operation = webView.printOperation(with: printInfo)
         operation.showsPrintPanel = true
         operation.showsProgressPanel = true
+        // AppKit's default panel omits these; Safari's print dialog shows them.
+        operation.printPanel.options.insert([.showsPaperSize, .showsOrientation, .showsScaling])
         // WKWebView's print view has a zero frame until it is sized explicitly.
         operation.view?.frame = NSRect(
             origin: .zero,
