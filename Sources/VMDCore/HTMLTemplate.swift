@@ -77,7 +77,7 @@ public enum HTMLTemplate {
     /// store, so the file works offline with no external references. Scripts
     /// are embedded as base64 data: URIs — minified libraries contain
     /// sequences like `<script` that break HTML parsing when inlined as text.
-    public static func exportPage(title: String, body: String, assets: AssetStore) -> String {
+    public static func exportPage(title: String, body: String, assets: AssetStore, fullWidth: Bool = false) -> String {
         var head = ""
         var scripts = ""
         if body.contains("<pre><code"), let css = assets.text("highlight.css"), let js = assets.data("highlight.min.js") {
@@ -102,7 +102,7 @@ public enum HTMLTemplate {
         <title>\(escape(title))</title>
         \(head)<style>\(css)</style>
         </head>
-        <body><article class="markdown-body">
+        <body><article class="\(articleClass("markdown-body", fullWidth: fullWidth))">
         \(body)
         </article>\(scripts)</body>
         </html>

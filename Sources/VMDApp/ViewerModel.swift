@@ -21,6 +21,7 @@ final class ViewerModel: ObservableObject {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.html]
         panel.nameFieldStringValue = fileURL.deletingPathExtension().lastPathComponent + ".html"
+        let fullWidth = usesFullWidth
         panel.beginSheetModal(for: window) { response in
             guard response == .OK, let destination = panel.url else { return }
             do {
@@ -28,7 +29,8 @@ final class ViewerModel: ObservableObject {
                 let html = HTMLTemplate.exportPage(
                     title: fileURL.lastPathComponent,
                     body: MarkdownRenderer.html(from: markdown),
-                    assets: AssetStore(resourceBundleURL: Bundle.appResources.bundleURL)
+                    assets: AssetStore(resourceBundleURL: Bundle.appResources.bundleURL),
+                    fullWidth: fullWidth
                 )
                 try html.write(to: destination, atomically: true, encoding: .utf8)
             } catch {

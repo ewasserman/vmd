@@ -119,6 +119,18 @@ import Testing
         #expect(!page.contains("data:text/javascript"))
         #expect(page.contains("<p>hi</p>"))
     }
+
+    @Test func carriesFullWidthIntoTheExportedFile() throws {
+        let (store, dir) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let framed = HTMLTemplate.exportPage(title: "t", body: "<p>hi</p>", assets: store)
+        #expect(framed.contains("<article class=\"markdown-body\">"))
+
+        let wide = HTMLTemplate.exportPage(title: "t", body: "<p>hi</p>", assets: store, fullWidth: true)
+        #expect(wide.contains("<article class=\"markdown-body full-width\">"))
+        #expect(wide.contains(".markdown-body.full-width { max-width: none; }"))
+    }
 }
 
 @Suite struct HTMLTemplateTests {
