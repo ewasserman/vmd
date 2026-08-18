@@ -12,11 +12,30 @@ var arguments = Array(CommandLine.arguments.dropFirst())
 let exportHTML = arguments.first == "--html"
 if exportHTML { arguments.removeFirst() }
 
+// Width matches the app's default (full width) unless overridden. Viewer
+// windows take their width from the View menu toggle, so the flags only mean
+// something for --html rather than being silently ignored.
+var fullWidth = true
+var widthFlagGiven = false
+arguments.removeAll { argument in
+    switch argument {
+    case "--full-width": fullWidth = true
+    case "--narrow": fullWidth = false
+    default: return false
+    }
+    widthFlagGiven = true
+    return true
+}
+
 guard !arguments.isEmpty, !arguments.contains("-h"), !arguments.contains("--help"),
-      !(exportHTML && arguments.count != 1) else {
+      !(exportHTML && arguments.count != 1), !(widthFlagGiven && !exportHTML) else {
     FileHandle.standardError.write(Data("""
     usage: vmd <file.md> [more.md ...]     open viewer windows
-           vmd --html <file.md>            write standalone HTML to stdout
+           vmd --html [--narrow] <file.md> write standalone HTML to stdout
+
+    options:
+      --full-width   let content use the whole page width (default)
+      --narrow       constrain content to a readable column
 
     """.utf8))
     exit(64)
@@ -59,7 +78,8 @@ if exportHTML {
         let html = HTMLTemplate.exportPage(
             title: fileURL.lastPathComponent,
             body: MarkdownRenderer.html(from: markdown),
-            assets: AssetStore(resourceBundleURL: assetsURL)
+            assets: AssetStore(resourceBundleURL: assetsURL),
+            fullWidth: fullWidth
         )
         FileHandle.standardOutput.write(Data(html.utf8))
         exit(0)

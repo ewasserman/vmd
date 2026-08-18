@@ -39,7 +39,8 @@ Set `PREFIX` for a different CLI location, e.g. `make install PREFIX=/usr/local`
 ```sh
 vmd README.md       # open a viewer window
 vmd a.md b.md       # multiple files become tabs of one new window
-vmd --html a.md     # standalone HTML on stdout
+vmd --html a.md     # standalone HTML on stdout (full width, like the app)
+vmd --html --narrow a.md   # ... constrained to a readable column instead
 ```
 
 Or open `.md` files from Finder via "Open With → VMD", or ⌘O inside the app.
