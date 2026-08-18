@@ -292,5 +292,69 @@ public enum HTMLTemplate {
       color: var(--muted);
       border-top: 1px solid var(--border);
     }
+    @media print {
+      /* Printers omit backgrounds but honour text colour, so a dark-mode
+         window would print near-white text onto white paper. Pin the light
+         palette here — in light mode these are the values already in play,
+         so the block is a no-op rather than a second code path. */
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --fg: #1f2328;
+        --muted: #59636e;
+        --border: #d1d9e0;
+        --code-bg: #f6f8fa;
+        --link: #0969da;
+      }
+      /* highlight.css swaps to its dark token palette the same way. */
+      .hljs { color: #24292e; }
+      .hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag,
+      .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: #d73a49; }
+      .hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__,
+      .hljs-title.function_ { color: #6f42c1; }
+      .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number,
+      .hljs-operator, .hljs-selector-attr, .hljs-selector-class,
+      .hljs-selector-id, .hljs-variable { color: #005cc5; }
+      .hljs-meta .hljs-string, .hljs-regexp, .hljs-string { color: #032f62; }
+      .hljs-built_in, .hljs-symbol { color: #e36209; }
+      .hljs-code, .hljs-comment, .hljs-formula { color: #6a737d; }
+      .hljs-name, .hljs-quote, .hljs-selector-pseudo, .hljs-selector-tag { color: #22863a; }
+      .hljs-subst, .hljs-emphasis, .hljs-strong { color: #24292e; }
+      .hljs-section { color: #005cc5; }
+      .hljs-bullet { color: #735c0f; }
+      .hljs-addition { color: #22863a; }
+      .hljs-deletion { color: #b31d28; }
+      /* Keep the greys that carry structure — code blocks, table banding. */
+      pre, code, kbd, th, td, tbody tr:nth-child(2n) {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      body { background: #fff; font-size: 11pt; }
+      /* NSPrintInfo owns the page margins; screen padding would stack on top. */
+      .markdown-body, .markdown-body.full-width, .source-view {
+        max-width: none;
+        padding: 0;
+      }
+      /* On screen these scroll sideways. On paper there is nowhere to scroll,
+         so anything past the right edge is silently dropped — wrap instead. */
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        overflow-x: visible;
+      }
+      table {
+        display: table;
+        width: 100%;
+        overflow-x: visible;
+        font-size: 8.5pt;
+      }
+      /* break-word, not anywhere: `anywhere` counts toward min-content sizing,
+         so the table squeezes columns until numbers snap ("$13,4/95"). */
+      th, td { overflow-wrap: break-word; padding: 4px 6px; }
+      thead { display: table-header-group; }
+      pre.mermaid svg { max-width: 100%; height: auto; }
+      h1, h2, h3, h4, h5, h6 { break-after: avoid-page; break-inside: avoid; }
+      pre, blockquote, tr, li, pre.mermaid { break-inside: avoid; }
+    }
     """
 }
