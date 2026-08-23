@@ -101,6 +101,20 @@ final class ViewerModel: NSObject, ObservableObject {
         }
     }
 
+    /// Menu path: the File ▸ Share submenu names a service directly, so no
+    /// picker is involved.
+    func sharePDF(via service: NSSharingService) {
+        writePDFToShare { [weak self] url in
+            guard let self else { return }
+            // Retained while it runs; a service performs asynchronously and
+            // would otherwise deallocate mid-share.
+            activeService = service
+            service.perform(withItems: [url])
+        }
+    }
+
+    private var activeService: NSSharingService?
+
     /// Producing the file and presenting the picker stay separate so other
     /// payloads can be shared later without touching the presentation side.
     private func writePDFToShare(completion: @escaping (URL) -> Void) {
