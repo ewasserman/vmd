@@ -22,6 +22,8 @@ struct VMDApp: App {
                 Button("Export as HTML…") { viewerModel?.exportHTML() }
                     .keyboardShortcut("e", modifiers: [.command, .shift])
                     .disabled(viewerModel == nil)
+                Button("Share…") { viewerModel?.sharePDF() }
+                    .disabled(viewerModel == nil)
             }
             CommandGroup(after: .textEditing) {
                 Button("Find…") { viewerModel?.isFindVisible = true }

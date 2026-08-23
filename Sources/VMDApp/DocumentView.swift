@@ -28,7 +28,32 @@ struct DocumentView: View {
                     .toggleStyle(.button)
                     .help("Toggle source view (⇧⌘U)")
                 }
+                ToolbarItem {
+                    Button {
+                        model.sharePDF()
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .help("Share as PDF")
+                    .background(ShareAnchor(model: model))
+                }
             }
+    }
+
+    /// Registers the Share button's backing view with the model: the share
+    /// popover has to point at the button, and SwiftUI doesn't hand it over.
+    private struct ShareAnchor: NSViewRepresentable {
+        let model: ViewerModel
+
+        func makeNSView(context: Context) -> NSView {
+            let view = NSView()
+            model.shareAnchor = view
+            return view
+        }
+
+        func updateNSView(_ nsView: NSView, context: Context) {
+            model.shareAnchor = nsView
+        }
     }
 
     private var findBar: some View {
