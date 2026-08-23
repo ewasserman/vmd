@@ -147,17 +147,22 @@ final class ViewerModel: NSObject, ObservableObject {
     /// would otherwise have its entry consumed by the earlier callback.
     private var pendingShares: [ObjectIdentifier: (url: URL, completion: (URL) -> Void)] = [:]
 
-    @objc private func sharedFileDidPrint(
+    // nonisolated because a panel-less NSPrintOperation invokes the didRun
+    // selector from its own worker thread, not the main thread.
+    @objc nonisolated private func sharedFileDidPrint(
         _ operation: NSPrintOperation,
         success: Bool,
         contextInfo: UnsafeMutableRawPointer?
     ) {
-        guard let pending = pendingShares.removeValue(forKey: ObjectIdentifier(operation)) else { return }
-        guard success, FileManager.default.fileExists(atPath: pending.url.path) else {
-            discardShareDirectory(for: pending.url)
-            return
+        let key = ObjectIdentifier(operation)
+        Task { @MainActor [weak self] in
+            guard let self, let pending = pendingShares.removeValue(forKey: key) else { return }
+            guard success, FileManager.default.fileExists(atPath: pending.url.path) else {
+                discardShareDirectory(for: pending.url)
+                return
+            }
+            pending.completion(pending.url)
         }
-        pending.completion(pending.url)
     }
 
     /// Held for as long as the popover is up: a picker that only lives in the
