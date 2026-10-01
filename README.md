@@ -26,6 +26,12 @@ brew install ewasserman/tap/vmd
 The app builds from source on your machine, so there is no Gatekeeper
 quarantine and no notarization requirement.
 
+Homebrew cannot register apps with macOS during install, so after installing
+or upgrading run any `vmd` command once (`vmd -v` will do). The CLI registers
+the installed VMD.app with macOS whenever macOS would open a different copy,
+which keeps Finder's "Open With" and your default markdown app pointing at the
+current version.
+
 Or from a checkout:
 
 ```sh

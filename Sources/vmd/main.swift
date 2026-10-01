@@ -28,6 +28,18 @@ func locateApp() -> URL? {
     return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
 }
 
+// Homebrew no longer lets a formula register the app with Launch Services
+// during install, so after `brew upgrade` macOS can be left knowing only the
+// deleted older copy, and double-clicking a markdown file finds no VMD.
+// Whenever Launch Services would open a different copy than the one this CLI
+// uses, register this one. Entries for deleted copies are harmless: Launch
+// Services skips them once a copy that exists is registered.
+func registerIfNeeded(_ appURL: URL) {
+    let registered = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+    guard registered?.resolvingSymlinksInPath() != appURL.resolvingSymlinksInPath() else { return }
+    LSRegisterURL(appURL as CFURL, true)
+}
+
 var arguments = Array(CommandLine.arguments.dropFirst())
 let exportHTML = arguments.first == "--html"
 if exportHTML { arguments.removeFirst() }
@@ -53,6 +65,7 @@ if arguments == ["-v"] || arguments == ["--version"] {
     guard let appURL = locateApp() else {
         fail("VMD.app not found", code: 69)
     }
+    registerIfNeeded(appURL)
     let version = Bundle(url: appURL)?.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
     print("VMD \(version) (\(appURL.path))")
     exit(0)
@@ -81,6 +94,7 @@ for url in urls where !FileManager.default.fileExists(atPath: url.path) {
 guard let appURL = locateApp() else {
     fail("VMD.app not found — install it with `make install` or `brew install ewasserman/tap/vmd`", code: 69)
 }
+registerIfNeeded(appURL)
 
 if exportHTML {
     let fileURL = urls[0]
