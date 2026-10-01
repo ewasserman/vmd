@@ -8,6 +8,26 @@ func fail(_ message: String, code: Int32) -> Never {
     exit(code)
 }
 
+// Prefer the app this CLI was installed with (Homebrew keeps it in
+// <prefix>/libexec next to this binary), then the standard locations, and
+// only then whatever Launch Services associates with the bundle id — LS can
+// pick up stray registered copies (e.g. build artifacts that were opened).
+func locateApp() -> URL? {
+    var candidates: [URL] = []
+    if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
+        candidates.append(
+            executable.deletingLastPathComponent().deletingLastPathComponent()
+                .appendingPathComponent("libexec/VMD.app")
+        )
+    }
+    candidates.append(URL(fileURLWithPath: "/Applications/VMD.app"))
+    candidates.append(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications/VMD.app"))
+    if let found = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+        return found
+    }
+    return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+}
+
 var arguments = Array(CommandLine.arguments.dropFirst())
 let exportHTML = arguments.first == "--html"
 if exportHTML { arguments.removeFirst() }
@@ -27,11 +47,23 @@ arguments.removeAll { argument in
     return true
 }
 
+// Report the version of the app the CLI would open, which is what users
+// actually run; the CLI binary itself carries no version.
+if arguments == ["-v"] || arguments == ["--version"] {
+    guard let appURL = locateApp() else {
+        fail("VMD.app not found", code: 69)
+    }
+    let version = Bundle(url: appURL)?.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+    print("VMD \(version) (\(appURL.path))")
+    exit(0)
+}
+
 guard !arguments.isEmpty, !arguments.contains("-h"), !arguments.contains("--help"),
       !(exportHTML && arguments.count != 1), !(widthFlagGiven && !exportHTML) else {
     FileHandle.standardError.write(Data("""
     usage: vmd <file.md> [more.md ...]     open viewer windows
            vmd --html [--narrow] <file.md> write standalone HTML to stdout
+           vmd -v | --version              print the app's version and location
 
     options:
       --full-width   let content use the whole page width (default)
@@ -44,26 +76,6 @@ guard !arguments.isEmpty, !arguments.contains("-h"), !arguments.contains("--help
 let urls = arguments.map { URL(fileURLWithPath: $0).standardizedFileURL }
 for url in urls where !FileManager.default.fileExists(atPath: url.path) {
     fail("no such file: \(url.path)", code: 66)
-}
-
-// Prefer the app this CLI was installed with (Homebrew keeps it in
-// <prefix>/libexec next to this binary), then the standard locations, and
-// only then whatever Launch Services associates with the bundle id — LS can
-// pick up stray registered copies (e.g. build artifacts that were opened).
-func locateApp() -> URL? {
-    var candidates: [URL] = []
-    if let executable = Bundle.main.executableURL?.resolvingSymlinksInPath() {
-        candidates.append(
-            executable.deletingLastPathComponent().deletingLastPathComponent()
-                .appendingPathComponent("libexec/VMD.app")
-        )
-    }
-    candidates.append(URL(fileURLWithPath: "/Applications/VMD.app"))
-    candidates.append(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications/VMD.app"))
-    if let found = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
-        return found
-    }
-    return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
 }
 
 guard let appURL = locateApp() else {
